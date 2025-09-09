@@ -1,0 +1,34 @@
+{
+  "name": "api-development-poc",
+  "version": "1.0.0",
+  "description": "Advanced API Development POC with REST, GraphQL, WebSockets, and API Versioning",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:rest\" \"npm run dev:graphql-code\" \"npm run dev:graphql-schema\" \"npm run dev:websocket\"",
+    "dev:rest": "cd services/rest-api && npm run dev",
+    "dev:graphql-code": "cd services/graphql-code-first && npm run dev",
+    "dev:graphql-schema": "cd services/graphql-schema-first && npm run dev",
+    "dev:websocket": "cd services/websocket-api && npm run dev",
+    "install:all": "npm install && cd services/rest-api && npm install && cd ../graphql-code-first && npm install && cd ../graphql-schema-first && npm install && cd ../websocket-api && npm install",
+    "build": "npm run build:rest && npm run build:graphql-code && npm run build:graphql-schema && npm run build:websocket",
+    "build:rest": "cd services/rest-api && npm run build",
+    "build:graphql-code": "cd services/graphql-code-first && npm run build",
+    "build:graphql-schema": "cd services/graphql-schema-first && npm run build",
+    "build:websocket": "cd services/websocket-api && npm run build"
+  },
+  "keywords": [
+    "api",
+    "rest",
+    "graphql",
+    "websocket",
+    "express",
+    "typeorm",
+    "postgresql",
+    "versioning"
+  ],
+  "author": "API Development POC",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

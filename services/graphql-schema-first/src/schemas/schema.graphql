@@ -1,0 +1,347 @@
+# GraphQL Schema Definition (Schema-First Approach)
+
+scalar DateTime
+scalar Upload
+
+type Query {
+  # Health check
+  health: String!
+  
+  # User queries
+  user(id: ID!): User
+  users(first: Int = 10, after: String, filters: UserFilters): UserConnection!
+  me: User
+  
+  # Post queries
+  post(id: ID!): Post
+  postBySlug(slug: String!): Post
+  posts(first: Int = 10, after: String, filters: PostFilters, orderBy: PostOrderBy): PostConnection!
+  
+  # Comment queries
+  comment(id: ID!): Comment
+  comments(first: Int = 10, after: String, filters: CommentFilters, orderBy: CommentOrderBy): CommentConnection!
+  
+  # Tag queries
+  tag(id: ID!): Tag
+  tagBySlug(slug: String!): Tag
+  tags(first: Int = 10, after: String, filters: TagFilters, orderBy: TagOrderBy): TagConnection!
+  popularTags(limit: Int = 10): [PopularTag!]!
+}
+
+type Mutation {
+  # User mutations
+  register(input: CreateUserInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  updateProfile(input: UpdateUserInput!): User!
+  changePassword(input: ChangePasswordInput!): SuccessResponse!
+  deactivateAccount: SuccessResponse!
+  
+  # Post mutations
+  createPost(input: CreatePostInput!): Post!
+  updatePost(id: ID!, input: UpdatePostInput!): Post!
+  deletePost(id: ID!): SuccessResponse!
+  publishPost(id: ID!): Post!
+  
+  # Comment mutations
+  createComment(input: CreateCommentInput!): Comment!
+  updateComment(id: ID!, input: UpdateCommentInput!): Comment!
+  deleteComment(id: ID!): SuccessResponse!
+  approveComment(id: ID!): Comment!
+  rejectComment(id: ID!): Comment!
+  
+  # Tag mutations
+  createTag(input: CreateTagInput!): Tag!
+  updateTag(id: ID!, input: UpdateTagInput!): Tag!
+  deleteTag(id: ID!): SuccessResponse!
+}
+
+type Subscription {
+  # Real-time subscriptions
+  postCreated: Post!
+  postUpdated: Post!
+  commentAdded(postId: ID!): Comment!
+  commentUpdated(commentId: ID!): Comment!
+}
+
+# User Types
+type User {
+  id: ID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  fullName: String!
+  role: UserRole!
+  isActive: Boolean!
+  avatar: String
+  bio: String
+  posts: [Post!]!
+  comments: [Comment!]!
+  postCount: Int!
+  commentCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+input CreateUserInput {
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+}
+
+input UpdateUserInput {
+  firstName: String
+  lastName: String
+  email: String
+  bio: String
+  avatar: String
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+}
+
+input UserFilters {
+  search: String
+  role: UserRole
+  isActive: Boolean
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserEdge {
+  node: User!
+  cursor: String!
+}
+
+# Post Types
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  slug: String!
+  excerpt: String
+  featuredImage: String
+  status: PostStatus!
+  publishedAt: DateTime
+  author: User!
+  authorId: ID!
+  tags: [Tag!]!
+  comments: [Comment!]!
+  viewCount: Int!
+  likeCount: Int!
+  commentCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+input CreatePostInput {
+  title: String!
+  content: String!
+  excerpt: String
+  featuredImage: String
+  status: PostStatus = DRAFT
+  tagIds: [ID!]
+}
+
+input UpdatePostInput {
+  title: String
+  content: String
+  excerpt: String
+  featuredImage: String
+  status: PostStatus
+  tagIds: [ID!]
+}
+
+input PostFilters {
+  status: PostStatus
+  authorId: ID
+  tagId: ID
+  search: String
+}
+
+input PostOrderBy {
+  field: PostOrderField!
+  direction: OrderDirection!
+}
+
+enum PostOrderField {
+  CREATED_AT
+  UPDATED_AT
+  PUBLISHED_AT
+  TITLE
+  VIEW_COUNT
+  LIKE_COUNT
+}
+
+type PostConnection {
+  edges: [PostEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type PostEdge {
+  node: Post!
+  cursor: String!
+}
+
+# Comment Types
+type Comment {
+  id: ID!
+  content: String!
+  author: User!
+  authorId: ID!
+  post: Post!
+  postId: ID!
+  parent: Comment
+  parentId: ID
+  replies: [Comment!]!
+  isApproved: Boolean!
+  likeCount: Int!
+  replyCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input CreateCommentInput {
+  content: String!
+  postId: ID!
+  parentId: ID
+}
+
+input UpdateCommentInput {
+  content: String!
+}
+
+input CommentFilters {
+  postId: ID
+  authorId: ID
+  parentId: ID
+  isApproved: Boolean
+}
+
+input CommentOrderBy {
+  field: CommentOrderField!
+  direction: OrderDirection!
+}
+
+enum CommentOrderField {
+  CREATED_AT
+  UPDATED_AT
+  LIKE_COUNT
+}
+
+type CommentConnection {
+  edges: [CommentEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CommentEdge {
+  node: Comment!
+  cursor: String!
+}
+
+# Tag Types
+type Tag {
+  id: ID!
+  name: String!
+  slug: String!
+  description: String
+  color: String!
+  posts: [Post!]!
+  postCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input CreateTagInput {
+  name: String!
+  description: String
+  color: String = "#007bff"
+}
+
+input UpdateTagInput {
+  name: String
+  description: String
+  color: String
+}
+
+input TagFilters {
+  search: String
+}
+
+input TagOrderBy {
+  field: TagOrderField!
+  direction: OrderDirection!
+}
+
+enum TagOrderField {
+  NAME
+  CREATED_AT
+  POST_COUNT
+}
+
+type TagConnection {
+  edges: [TagEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type TagEdge {
+  node: Tag!
+  cursor: String!
+}
+
+type PopularTag {
+  id: ID!
+  name: String!
+  slug: String!
+  color: String!
+  postCount: Int!
+}
+
+# Common Types
+enum OrderDirection {
+  ASC
+  DESC
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type SuccessResponse {
+  success: Boolean!
+  message: String
+}
