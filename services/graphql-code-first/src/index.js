@@ -8,7 +8,7 @@ const { makeExecutableSchema } = require('@graphql-tools/schema');
 require('dotenv').config();
 
 const AppDataSource = require('./config/database');
-const { getContext } = require('./middleware/auth');
+// Authentication middleware removed for demo purposes
 const { DateTimeScalar } = require('./utils/helpers');
 
 // Import type definitions
@@ -92,8 +92,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // GraphQL endpoint
 app.use('/graphql', graphqlHTTP({
   schema,
-  context: getContext,
-  graphiql: process.env.NODE_ENV === 'development',
   customFormatErrorFn: (error) => {
     console.error('GraphQL Error:', error);
     return {
@@ -103,6 +101,7 @@ app.use('/graphql', graphqlHTTP({
     };
   },
 }));
+
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -134,7 +133,7 @@ const startServer = async () => {
     // Start HTTP server
     app.listen(PORT, () => {
       console.log(`🚀 GraphQL Code-First server running on port ${PORT}`);
-      console.log(`📚 GraphQL Playground: http://localhost:${PORT}/graphql`);
+      console.log(`🔗 GraphQL Endpoint: http://localhost:${PORT}/graphql`);
       console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     });

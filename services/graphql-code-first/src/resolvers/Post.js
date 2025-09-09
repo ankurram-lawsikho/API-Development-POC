@@ -10,7 +10,7 @@ const UserInputError = (message) => new Error(`User Input Error: ${message}`);
 
 const postResolvers = {
   Query: {
-    post: async (_, { id }, { user }) => {
+    post: async (_, { id }) => {
       const postRepository = AppDataSource.getRepository(Post);
       const post = await postRepository.findOne({
         where: { id },
@@ -18,13 +18,7 @@ const postResolvers = {
       });
 
       if (!post) {
-        throw new UserInputError('Post not found');
-      }
-
-      // Check if post is published or user is the author/admin
-      if (post.status !== 'published' && 
-          (!user || (user.id !== post.authorId && user.role !== 'admin'))) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Sanitize author data
@@ -145,11 +139,7 @@ const postResolvers = {
   },
 
   Mutation: {
-    createPost: async (_, { input }, { user }) => {
-      if (!user) {
-        throw new AuthenticationError('Authentication required');
-      }
-
+    createPost: async (_, { input }) => {
       const { title, content, excerpt, featuredImage, status = 'draft', tagIds = [] } = input;
       const postRepository = AppDataSource.getRepository(Post);
       const tagRepository = AppDataSource.getRepository(Tag);
@@ -172,7 +162,7 @@ const postResolvers = {
         featuredImage,
         slug,
         status,
-        authorId: user.id,
+        authorId: 'demo-user-1',
         publishedAt: status === 'published' ? new Date() : null,
       });
 

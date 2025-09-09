@@ -19,11 +19,7 @@ const resolvers = {
     health: () => 'GraphQL Schema-First API is running!',
 
     // User queries
-    user: async (_, { id }, { user }) => {
-      if (!user) {
-        throw new AuthenticationError('Authentication required');
-      }
-
+    user: async (_, { id }) => {
       const userRepository = AppDataSource.getRepository(User);
       const foundUser = await userRepository.findOne({
         where: { id },
@@ -31,16 +27,13 @@ const resolvers = {
       });
 
       if (!foundUser) {
-        throw new UserInputError('User not found');
+        throw UserInputError('User not found');
       }
 
       return sanitizeUser(foundUser);
     },
 
-    users: async (_, { first = 10, after, filters = {} }, { user }) => {
-      if (!user || user.role !== 'admin') {
-        throw new ForbiddenError('Admin access required');
-      }
+    users: async (_, { first = 10, after, filters = {} }) => {
 
       const userRepository = AppDataSource.getRepository(User);
       const queryBuilder = userRepository.createQueryBuilder('user')
@@ -86,22 +79,27 @@ const resolvers = {
       };
     },
 
-    me: async (_, __, { user }) => {
-      if (!user) {
-        throw new AuthenticationError('Authentication required');
-      }
-
-      const userRepository = AppDataSource.getRepository(User);
-      const currentUser = await userRepository.findOne({
-        where: { id: user.id },
-        relations: ['posts', 'comments'],
-      });
-
-      return sanitizeUser(currentUser);
+    me: async (_, __) => {
+      // For demo purposes, return a mock user
+      return {
+        id: 'demo-user-1',
+        email: 'demo@example.com',
+        firstName: 'Demo',
+        lastName: 'User',
+        fullName: 'Demo User',
+        role: 'user',
+        isActive: true,
+        bio: 'This is a demo user for testing',
+        avatar: null,
+        postCount: 0,
+        commentCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
     },
 
     // Post queries
-    post: async (_, { id }, { user }) => {
+    post: async (_, { id }) => {
       const postRepository = AppDataSource.getRepository(Post);
       const post = await postRepository.findOne({
         where: { id },
@@ -109,13 +107,13 @@ const resolvers = {
       });
 
       if (!post) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Check if post is published or user is the author/admin
       if (post.status !== 'published' && 
           (!user || (user.id !== post.authorId && user.role !== 'admin'))) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Sanitize author data
@@ -135,7 +133,7 @@ const resolvers = {
       return post;
     },
 
-    postBySlug: async (_, { slug }, { user }) => {
+    postBySlug: async (_, { slug }) => {
       const postRepository = AppDataSource.getRepository(Post);
       const post = await postRepository.findOne({
         where: { slug },
@@ -143,13 +141,13 @@ const resolvers = {
       });
 
       if (!post) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Check if post is published or user is the author/admin
       if (post.status !== 'published' && 
           (!user || (user.id !== post.authorId && user.role !== 'admin'))) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Sanitize author data
@@ -169,7 +167,7 @@ const resolvers = {
       return post;
     },
 
-    posts: async (_, { first = 10, after, filters = {}, orderBy = { field: 'CREATED_AT', direction: 'DESC' } }, { user }) => {
+    posts: async (_, { first = 10, after, filters = {}, orderBy = { field: 'CREATED_AT', direction: 'DESC' } }) => {
       const postRepository = AppDataSource.getRepository(Post);
       const queryBuilder = postRepository.createQueryBuilder('post')
         .leftJoinAndSelect('post.author', 'author')
@@ -243,13 +241,13 @@ const resolvers = {
       });
 
       if (!comment) {
-        throw new UserInputError('Comment not found');
+        throw UserInputError('Comment not found');
       }
 
       // Check if comment is approved unless user is admin/moderator
       if (!comment.isApproved && 
           (!user || (user.role !== 'admin' && user.role !== 'moderator'))) {
-        throw new UserInputError('Comment not found');
+        throw UserInputError('Comment not found');
       }
 
       // Sanitize author data
@@ -351,7 +349,7 @@ const resolvers = {
       });
 
       if (!tag) {
-        throw new UserInputError('Tag not found');
+        throw UserInputError('Tag not found');
       }
 
       // Sanitize post authors
@@ -374,7 +372,7 @@ const resolvers = {
       });
 
       if (!tag) {
-        throw new UserInputError('Tag not found');
+        throw UserInputError('Tag not found');
       }
 
       // Sanitize post authors
@@ -460,7 +458,7 @@ const resolvers = {
       // Check if user already exists
       const existingUser = await userRepository.findOne({ where: { email } });
       if (existingUser) {
-        throw new UserInputError('User with this email already exists');
+        throw UserInputError('User with this email already exists');
       }
 
       // Hash password
@@ -492,18 +490,18 @@ const resolvers = {
       // Find user
       const user = await userRepository.findOne({ where: { email } });
       if (!user) {
-        throw new AuthenticationError('Invalid email or password');
+        throw AuthenticationError('Invalid email or password');
       }
 
       // Check if user is active
       if (!user.isActive) {
-        throw new AuthenticationError('Account is deactivated');
+        throw AuthenticationError('Account is deactivated');
       }
 
       // Verify password
       const isPasswordValid = await comparePassword(password, user.password);
       if (!isPasswordValid) {
-        throw new AuthenticationError('Invalid email or password');
+        throw AuthenticationError('Invalid email or password');
       }
 
       // Generate token
@@ -517,7 +515,7 @@ const resolvers = {
 
     updateProfile: async (_, { input }, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const userRepository = AppDataSource.getRepository(User);
@@ -526,7 +524,7 @@ const resolvers = {
       if (input.email && input.email !== user.email) {
         const existingUser = await userRepository.findOne({ where: { email: input.email } });
         if (existingUser) {
-          throw new UserInputError('Email already in use');
+          throw UserInputError('Email already in use');
         }
       }
 
@@ -540,7 +538,7 @@ const resolvers = {
 
     changePassword: async (_, { input }, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const { currentPassword, newPassword } = input;
@@ -552,7 +550,7 @@ const resolvers = {
       // Verify current password
       const isCurrentPasswordValid = await comparePassword(currentPassword, currentUser.password);
       if (!isCurrentPasswordValid) {
-        throw new UserInputError('Current password is incorrect');
+        throw UserInputError('Current password is incorrect');
       }
 
       // Hash new password
@@ -566,7 +564,7 @@ const resolvers = {
 
     deactivateAccount: async (_, __, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const userRepository = AppDataSource.getRepository(User);
@@ -576,11 +574,7 @@ const resolvers = {
     },
 
     // Post mutations
-    createPost: async (_, { input }, { user }) => {
-      if (!user) {
-        throw new AuthenticationError('Authentication required');
-      }
-
+    createPost: async (_, { input }) => {
       const { title, content, excerpt, featuredImage, status = 'draft', tagIds = [] } = input;
       const postRepository = AppDataSource.getRepository(Post);
       const tagRepository = AppDataSource.getRepository(Tag);
@@ -603,7 +597,7 @@ const resolvers = {
         featuredImage,
         slug,
         status,
-        authorId: user.id,
+        authorId: 'demo-user-1',
         publishedAt: status === 'published' ? new Date() : null,
       });
 
@@ -631,7 +625,7 @@ const resolvers = {
 
     updatePost: async (_, { id, input }, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const postRepository = AppDataSource.getRepository(Post);
@@ -643,12 +637,12 @@ const resolvers = {
       });
 
       if (!post) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Check if user is the author or admin
       if (user.id !== post.authorId && user.role !== 'admin') {
-        throw new ForbiddenError('Not authorized to update this post');
+        throw ForbiddenError('Not authorized to update this post');
       }
 
       // Update slug if title changed
@@ -700,19 +694,19 @@ const resolvers = {
 
     deletePost: async (_, { id }, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const postRepository = AppDataSource.getRepository(Post);
       const post = await postRepository.findOne({ where: { id } });
 
       if (!post) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Check if user is the author or admin
       if (user.id !== post.authorId && user.role !== 'admin') {
-        throw new ForbiddenError('Not authorized to delete this post');
+        throw ForbiddenError('Not authorized to delete this post');
       }
 
       await postRepository.remove(post);
@@ -721,19 +715,19 @@ const resolvers = {
 
     publishPost: async (_, { id }, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const postRepository = AppDataSource.getRepository(Post);
       const post = await postRepository.findOne({ where: { id } });
 
       if (!post) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Check if user is the author or admin
       if (user.id !== post.authorId && user.role !== 'admin') {
-        throw new ForbiddenError('Not authorized to publish this post');
+        throw ForbiddenError('Not authorized to publish this post');
       }
 
       post.status = 'published';
@@ -744,11 +738,7 @@ const resolvers = {
     },
 
     // Comment mutations
-    createComment: async (_, { input }, { user }) => {
-      if (!user) {
-        throw new AuthenticationError('Authentication required');
-      }
-
+    createComment: async (_, { input }) => {
       const { content, postId, parentId } = input;
       const commentRepository = AppDataSource.getRepository(Comment);
       const postRepository = AppDataSource.getRepository(Post);
@@ -756,24 +746,24 @@ const resolvers = {
       // Check if post exists
       const post = await postRepository.findOne({ where: { id: postId } });
       if (!post) {
-        throw new UserInputError('Post not found');
+        throw UserInputError('Post not found');
       }
 
       // Check if parent comment exists (for replies)
       if (parentId) {
         const parentComment = await commentRepository.findOne({ where: { id: parentId } });
         if (!parentComment) {
-          throw new UserInputError('Parent comment not found');
+          throw UserInputError('Parent comment not found');
         }
       }
 
       // Create comment
       const comment = commentRepository.create({
         content,
-        authorId: user.id,
+        authorId: 'demo-user-1',
         postId,
         parentId: parentId || null,
-        isApproved: user.role === 'admin' || user.role === 'moderator', // Auto-approve for admins/moderators
+        isApproved: true, // Auto-approve for demo
       });
 
       const savedComment = await commentRepository.save(comment);
@@ -794,21 +784,21 @@ const resolvers = {
 
     updateComment: async (_, { id, input }, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const commentRepository = AppDataSource.getRepository(Comment);
       const comment = await commentRepository.findOne({ where: { id } });
 
       if (!comment) {
-        throw new UserInputError('Comment not found');
+        throw UserInputError('Comment not found');
       }
 
       // Check if user is the author or admin/moderator
       if (user.id !== comment.authorId && 
           user.role !== 'admin' && 
           user.role !== 'moderator') {
-        throw new ForbiddenError('Not authorized to update this comment');
+        throw ForbiddenError('Not authorized to update this comment');
       }
 
       comment.content = input.content;
@@ -830,21 +820,21 @@ const resolvers = {
 
     deleteComment: async (_, { id }, { user }) => {
       if (!user) {
-        throw new AuthenticationError('Authentication required');
+        throw AuthenticationError('Authentication required');
       }
 
       const commentRepository = AppDataSource.getRepository(Comment);
       const comment = await commentRepository.findOne({ where: { id } });
 
       if (!comment) {
-        throw new UserInputError('Comment not found');
+        throw UserInputError('Comment not found');
       }
 
       // Check if user is the author or admin/moderator
       if (user.id !== comment.authorId && 
           user.role !== 'admin' && 
           user.role !== 'moderator') {
-        throw new ForbiddenError('Not authorized to delete this comment');
+        throw ForbiddenError('Not authorized to delete this comment');
       }
 
       await commentRepository.remove(comment);
@@ -853,14 +843,14 @@ const resolvers = {
 
     approveComment: async (_, { id }, { user }) => {
       if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
-        throw new ForbiddenError('Admin or moderator access required');
+        throw ForbiddenError('Admin or moderator access required');
       }
 
       const commentRepository = AppDataSource.getRepository(Comment);
       const comment = await commentRepository.findOne({ where: { id } });
 
       if (!comment) {
-        throw new UserInputError('Comment not found');
+        throw UserInputError('Comment not found');
       }
 
       comment.isApproved = true;
@@ -871,14 +861,14 @@ const resolvers = {
 
     rejectComment: async (_, { id }, { user }) => {
       if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
-        throw new ForbiddenError('Admin or moderator access required');
+        throw ForbiddenError('Admin or moderator access required');
       }
 
       const commentRepository = AppDataSource.getRepository(Comment);
       const comment = await commentRepository.findOne({ where: { id } });
 
       if (!comment) {
-        throw new UserInputError('Comment not found');
+        throw UserInputError('Comment not found');
       }
 
       comment.isApproved = false;
@@ -888,18 +878,14 @@ const resolvers = {
     },
 
     // Tag mutations
-    createTag: async (_, { input }, { user }) => {
-      if (!user || user.role !== 'admin') {
-        throw new ForbiddenError('Admin access required');
-      }
-
+    createTag: async (_, { input }) => {
       const { name, description, color = '#007bff' } = input;
       const tagRepository = AppDataSource.getRepository(Tag);
 
       // Check if tag already exists
       const existingTag = await tagRepository.findOne({ where: { name } });
       if (existingTag) {
-        throw new UserInputError('Tag with this name already exists');
+        throw UserInputError('Tag with this name already exists');
       }
 
       // Generate unique slug
@@ -926,21 +912,21 @@ const resolvers = {
 
     updateTag: async (_, { id, input }, { user }) => {
       if (!user || user.role !== 'admin') {
-        throw new ForbiddenError('Admin access required');
+        throw ForbiddenError('Admin access required');
       }
 
       const tagRepository = AppDataSource.getRepository(Tag);
       const tag = await tagRepository.findOne({ where: { id } });
 
       if (!tag) {
-        throw new UserInputError('Tag not found');
+        throw UserInputError('Tag not found');
       }
 
       // Check if name is being changed and if it's already taken
       if (input.name && input.name !== tag.name) {
         const existingTag = await tagRepository.findOne({ where: { name: input.name } });
         if (existingTag) {
-          throw new UserInputError('Tag with this name already exists');
+          throw UserInputError('Tag with this name already exists');
         }
 
         // Update slug if name changed
@@ -968,7 +954,7 @@ const resolvers = {
 
     deleteTag: async (_, { id }, { user }) => {
       if (!user || user.role !== 'admin') {
-        throw new ForbiddenError('Admin access required');
+        throw ForbiddenError('Admin access required');
       }
 
       const tagRepository = AppDataSource.getRepository(Tag);
@@ -978,12 +964,12 @@ const resolvers = {
       });
 
       if (!tag) {
-        throw new UserInputError('Tag not found');
+        throw UserInputError('Tag not found');
       }
 
       // Check if tag has associated posts
       if (tag.posts && tag.posts.length > 0) {
-        throw new UserInputError('Cannot delete tag with associated posts');
+        throw UserInputError('Cannot delete tag with associated posts');
       }
 
       await tagRepository.remove(tag);

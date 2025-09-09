@@ -116,11 +116,7 @@ const tagResolvers = {
   },
 
   Mutation: {
-    createTag: async (_, { input }, { user }) => {
-      if (!user || user.role !== 'admin') {
-        throw new ForbiddenError('Admin access required');
-      }
-
+    createTag: async (_, { input }) => {
       const { name, description, color = '#007bff' } = input;
       const tagRepository = AppDataSource.getRepository(Tag);
 

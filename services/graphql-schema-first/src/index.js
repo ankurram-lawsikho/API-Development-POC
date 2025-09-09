@@ -9,19 +9,29 @@ const { loadSchema } = require('./utils/helpers');
 require('dotenv').config();
 
 const AppDataSource = require('./config/database');
-const { getContext } = require('./middleware/auth');
+// Authentication middleware removed for demo purposes
 const resolvers = require('./resolvers');
 
 const PORT = process.env.PORT || 3003;
 
 // Load GraphQL schema from file
-const typeDefs = loadSchema();
+let typeDefs;
+let schema;
 
-// Create executable schema
-const schema = makeExecutableSchema({
-  typeDefs,
-  resolvers,
-});
+try {
+  typeDefs = loadSchema();
+  console.log('✅ Schema loaded successfully');
+  
+  // Create executable schema
+  schema = makeExecutableSchema({
+    typeDefs,
+    resolvers,
+  });
+  console.log('✅ Schema compiled successfully');
+} catch (error) {
+  console.error('❌ Schema compilation error:', error);
+  process.exit(1);
+}
 
 // Create Express app
 const app = express();
@@ -52,8 +62,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // GraphQL endpoint
 app.use('/graphql', graphqlHTTP({
   schema,
-  context: getContext,
-  graphiql: process.env.NODE_ENV === 'development',
   customFormatErrorFn: (error) => {
     console.error('GraphQL Error:', error);
     return {
@@ -63,6 +71,7 @@ app.use('/graphql', graphqlHTTP({
     };
   },
 }));
+
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -94,7 +103,7 @@ const startServer = async () => {
     // Start HTTP server
     app.listen(PORT, () => {
       console.log(`🚀 GraphQL Schema-First server running on port ${PORT}`);
-      console.log(`📚 GraphQL Playground: http://localhost:${PORT}/graphql`);
+      console.log(`🔗 GraphQL Endpoint: http://localhost:${PORT}/graphql`);
       console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     });

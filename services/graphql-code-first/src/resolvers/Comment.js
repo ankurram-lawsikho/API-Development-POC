@@ -10,7 +10,7 @@ const UserInputError = (message) => new Error(`User Input Error: ${message}`);
 
 const commentResolvers = {
   Query: {
-    comment: async (_, { id }, { user }) => {
+    comment: async (_, { id }) => {
       const commentRepository = AppDataSource.getRepository(Comment);
       const comment = await commentRepository.findOne({
         where: { id },
@@ -18,13 +18,7 @@ const commentResolvers = {
       });
 
       if (!comment) {
-        throw new UserInputError('Comment not found');
-      }
-
-      // Check if comment is approved unless user is admin/moderator
-      if (!comment.isApproved && 
-          (!user || (user.role !== 'admin' && user.role !== 'moderator'))) {
-        throw new UserInputError('Comment not found');
+        throw UserInputError('Comment not found');
       }
 
       // Sanitize author data
@@ -119,11 +113,7 @@ const commentResolvers = {
   },
 
   Mutation: {
-    createComment: async (_, { input }, { user }) => {
-      if (!user) {
-        throw new AuthenticationError('Authentication required');
-      }
-
+    createComment: async (_, { input }) => {
       const { content, postId, parentId } = input;
       const commentRepository = AppDataSource.getRepository(Comment);
       const postRepository = AppDataSource.getRepository(Post);
@@ -145,10 +135,10 @@ const commentResolvers = {
       // Create comment
       const comment = commentRepository.create({
         content,
-        authorId: user.id,
+        authorId: 'demo-user-1',
         postId,
         parentId: parentId || null,
-        isApproved: user.role === 'admin' || user.role === 'moderator', // Auto-approve for admins/moderators
+        isApproved: true, // Auto-approve for demo
       });
 
       const savedComment = await commentRepository.save(comment);

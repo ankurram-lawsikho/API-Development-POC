@@ -9,7 +9,7 @@ const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'api_poc',
   synchronize: process.env.NODE_ENV === 'development',
-  logging: process.env.NODE_ENV === 'development',
+  logging: false,
   entities: [__dirname + '/../models/*.js'],
   migrations: [__dirname + '/../../migrations/*.js'],
   subscribers: [__dirname + '/../subscribers/*.js'],
